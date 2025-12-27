@@ -1,0 +1,69 @@
+trigger AccountTrigger on Account (before insert, before update, after update) {
+    
+    Switch on Trigger.OperationType
+    {
+        when BEFORE_INSERT
+        {
+            for(Account acc:Trigger.new)
+            {
+                if(String.isBlank(acc.Type))
+                    acc.Type='Prospect';
+                
+                if(String.isBlank(acc.Rating))
+                    acc.Rating=label.Account_Rating;
+            }
+        }
+        When BEFORE_UPDATE
+        {   
+            for(Account acc:Trigger.new)
+            {
+            //Account record =Trigger.new[0];
+            
+            if(Trigger.OldMap.get(acc.Id).ParentID!=acc.ParentID)
+            {
+                acc.addError('You should not change the Parent record');                                  
+            }     
+           }              
+          }
+        When AFTER_UPDATE
+        {
+            Set <Id> accIds= new Set <Id>();
+            
+            for(Account acc:Trigger.new)
+            {
+               if(acc.rating != Trigger.OldMap.get(acc.Id).rating )
+               {
+                   accIds.add(acc.Id);
+               }
+            }
+            
+            List<Opportunity> oppList =[ 
+                                         Select Id, Name, AccountId
+                                         From Opportunity
+                                         where AccountId In:accIds
+                                        ];
+            
+            for(Opportunity opp:opplist)
+            {
+                Account acc=Trigger.newMap.get(opp.AccountId);
+                
+                If(acc.Rating=='Hot')
+                {
+                    opp.description='High Priority Account';
+                }
+                else if(acc.rating=='Cold')
+                {
+                    opp.description='Low Priority account';
+                }
+                else
+                {
+                    opp.Description='';
+                }                    
+            }
+            
+            update oppList;
+            
+            
+        }
+    }
+}
