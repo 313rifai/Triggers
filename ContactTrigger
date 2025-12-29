@@ -1,0 +1,32 @@
+trigger ContactTrigger on Contact (before insert, after insert) 
+{
+    Switch on Trigger.OperationType
+    {
+        when BEFORE_INSERT
+        {
+            for(Contact con:Trigger.new)
+            {
+               if((String.isBlank(con.Email)))
+               {
+                con.addError('Please enter the email');
+               }               
+            }  
+        }
+        When AFTER_INSERT
+        {        
+           List<Account> accList = new List<Account>();
+                    
+             for(contact con :Trigger.new)
+             {
+                 if( con.AccountId!=NULL)
+                 { 
+                 Account acc = new Account();
+                 acc.ID= con.AccountId;
+                 acc.Has_Contacts__c=TRUE;
+                 acclist.add(acc);
+                 }
+             }           
+            Update accList;                                
+          }
+        }
+}
