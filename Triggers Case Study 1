@@ -1,0 +1,90 @@
+trigger AccountTrigger on Account (after update, before delete) {
+    
+    Switch on Trigger.OperationType
+    {
+        when AFTER_UPDATE
+        {
+            List <Contact> conListToUpdate = new List <Contact>();
+            
+            List<Contact> contactList = [ 
+                                          Select Id, phone, AccountId
+                                          From Contact
+                                          Where AccountID =:Trigger.New
+                                        ]; 
+            
+          for (Contact contactRecord: contactList)
+            {                  
+             contactRecord.Description='Account Info Updated';   
+            }            
+            update contactList;
+        }
+       
+      //----------------------------------------------------------------------------------------- tried pattern      
+         /*   for(Account accRec:Trigger.new)
+            {
+                system.debug('1');
+                If(accRec.type!=Trigger.oldMap.get(accRec.Id).type)                    
+                {
+                    system.debug('2');
+                    for(Contact conRec:accRec.Contacts)
+                    {                     
+                     conRec.Description='Account Info Updated by another Scenario';
+                     conListToUpdate.add(conRec);
+                     system.debug('3');
+                    }
+                }
+            }
+            update conListToUpdate;
+*/
+        //------------------------------------------------------------------------------ Old pattern  
+        /*  
+             Set <Id> accIds= new Set <Id>();
+            
+            for(Account acc:Trigger.new)
+            {
+               if(acc.type!=Trigger.oldMap.get(acc.Id).type)
+               {
+                   accIds.add(acc.Id);
+               }
+            }
+            
+            List<Contact> conList =[ 
+                                     Select Id, Name, AccountId
+                                     From Contact
+                                     where AccountId In:accIds
+                                   ];
+            
+            for(Contact con:conList)
+            {
+                Account acc=Trigger.newMap.get(con.AccountId);
+                con.Description='Account Info Updated by another Scenario';                                 
+            }           
+            update conList;            
+        }
+    
+           
+ 
+        */
+            
+        
+        when BEFORE_DELETE
+        {
+            Profile loginProfile = [
+                                     SELECT Name
+                                     FROM Profile
+                                     WHERE Id = :UserInfo.getProfileId()
+                                   ];
+          for(Account accRec:Trigger.Old)
+          {
+              if( accRec.Type=='Prospect')
+              {
+              accRec.addError('You cannot delete account record if type is Prospect');
+              }
+          }
+            
+          //loginProfile.name!='System Administrator' ||
+            
+        }
+        
+}
+}
