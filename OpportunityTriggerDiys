@@ -1,0 +1,94 @@
+trigger OpportunityTrigger on Opportunity (before insert, before update, after insert, after delete) {
+    
+      Switch on Trigger.OperationType
+    {
+        when BEFORE_INSERT
+        {
+            for(Opportunity opp:Trigger.new)
+            {
+                if(opp.Amount>1000000 && (String.isBlank(opp.Description)))
+                {
+                  opp.addError('Please enter description field');  
+                }
+                 if (opp.AccountId==NULL)
+                 {
+                     opp.addError('Choose Account Name');
+                 }
+                
+            }
+        }
+        
+        When BEFORE_UPDATE
+        {
+            For(Opportunity opp:Trigger.new)
+            {
+          //Opportunity record=Trigger.new[0];            
+            if(Trigger.OldMap.get(opp.ID).Amount > opp.Amount)
+            {
+             opp.addError('Opportunity amount can only increase');  
+            }
+          }
+        
+      
+            for(Opportunity opp:Trigger.new)
+            {
+              if(Trigger.OldMap.get(Opp.ID).CloseDate > opp.CloseDate)
+              {
+                opp.addError('Close Date should move to an earlier date');  
+              }
+                
+            }
+                       
+        }    
+        
+        When AFTER_INSERT
+        {    
+           List<Task> taskRec = new List<Task>();
+            
+           List<Account> acclist = new List<Account>();
+            
+            for(Opportunity opp:Trigger.new)
+            {
+                if( opp.AccountId!=NULL && opp.Amount!=NULL)
+                 {
+                Account acc= new Account();
+                acc.Id=opp.AccountID;
+                acc.Last_Opportunity_Amount__c=opp.Amount;
+                acclist.add(acc);
+            }
+            }
+            update acclist;
+               
+            for(Opportunity opp:Trigger.new)
+            {
+              if(opp.Amount>1000000)
+              {
+                system.debug('New Opportunity record created');
+              }                
+              if(opp.StageName=='Closed Won')
+                {                                        
+                 Task obj=new Task( WhatID=opp.Id ,Status='Not Started',Priority='High',Subject='Call');
+                 taskRec.add(obj);
+                }                               
+            }            
+            insert taskRec;
+            
+            
+        }
+        When AFTER_DELETE
+        {
+            List<Opportunity_Deletion_log__c> delopp = new List<Opportunity_Deletion_log__c>();
+            
+            for(Opportunity oppRec:Trigger.Old)
+            {                  
+                Opportunity_Deletion_log__c obj = new Opportunity_Deletion_log__c();
+                obj.Deleted_Opportunity_Id__c=oppRec.Id;
+                obj.Del_Opportunity_Name__c=oppRec.Name;
+                delopp.add(obj);               
+            }            
+            if(!delopp.isempty())
+             insert delopp;
+        }
+
+}
+}
