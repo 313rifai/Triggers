@@ -1,0 +1,185 @@
+trigger ContactTrigger on Contact (after insert,after update, after delete) 
+{
+    Switch on Trigger.OperationType
+    {
+        when AFTER_INSERT
+        {
+            Set<Id> accIds = new Set<Id>();
+            
+            for(Contact conRec:Trigger.new)
+            {
+                if(conRec.accountID!=NULL)
+                {
+                 accIds.add(conRec.accountID);
+                }
+            }
+            List<AggregateResult> countofCon = [
+                                                Select count(ID) countOfCon , AccountId
+                                                From Contact
+                                                Where AccountId IN:accIds
+                                                Group by AccountId
+                                               ];
+            
+            List <Account> accRecToUpdate = new List <Account> ();
+            
+            for(AggregateResult ar:countofCon)
+            {
+                Account accRec = new Account();
+                accRec.Id=(Id)ar.get('AccountID');
+                accRec.Count_of_Contacts__c=(Integer)ar.get('countOfCon');
+                accRecToUpdate.add(accRec);
+            }
+                      
+                update accRecToUpdate;
+            
+        }
+        When AFTER_UPDATE
+       { 
+           
+           /*
+           List<Case> casesList= [
+                                  Select id, ContactId 
+                                  From Case
+                                  where ContactId=:Trigger.new
+                                 ];
+           for(Case caseRec: casesList)
+           {
+              caseRec.Subject='Updated Contact Info';
+           }
+           
+           update casesList;
+          */
+           //-------------------------------------------------Update Using Aggre-------------------------------------
+      /*     
+            Set<Id> accIds = new Set<Id>();
+           
+            for(Contact conRec:Trigger.new)
+            {
+                if(conRec.accountID!=NULL  && conRec.accountID!=Trigger.oldMap.get(conRec.Id).accountId)
+                {
+                  accIds.add(conRec.accountID);
+                  accIds.add(Trigger.oldMap.get(conRec.Id).accountId);
+                }               
+            }
+           //Initialize accounts with 0
+           
+           Map<Id,Integer> accToCountMap = new Map<Id, Integer> ();
+           
+           for(Id accId:accIds)
+           {
+             accToCountMap.put(accId,0);  
+           }
+           
+            List<AggregateResult> countofCon = [
+                                                Select count(ID) countOfCon , AccountId
+                                                From Contact
+                                                Where AccountId IN:accIds
+                                                Group by AccountId
+                                               ];
+                        
+            for(AggregateResult ar:countofCon)
+            {
+                accToCountMap.put((Id) ar.get('AccountId'), (Integer) ar.get('countOfCon'));
+            }
+           
+           
+            List <Account> accRecToUpdate = new List <Account> ();
+           
+           for (Id accId:accToCountMap.KeySet())
+           {
+             accRecToUpdate.add(new Account(Id=accId,Count_of_Contacts__c=accToCountMap.get(accID))); 
+           }           
+            if(!accRecToUpdate.isempty())
+            update accRecToUpdate;
+          */
+           
+           Set <Id> conIds = new Set<Id>();
+           
+           for(Contact conRec: Trigger.new)
+           {  
+                if(conRec.accountID!=NULL  && conRec.accountID!=Trigger.oldMap.get(conRec.Id).accountId)
+                {
+                  conIds.add(conRec.accountID);
+                  conIds.add(Trigger.oldMap.get(conRec.Id).accountId);
+                }                             
+           }
+           
+           List<Account> acclist = [ 
+                                     Select Id,Count_of_Contacts__c,(Select Id , Name From Contacts)
+                                     From Account
+                                     Where Id IN:conIds
+                                   ];
+           
+           List<Account> acctoUpdate = new List <Account>();
+           
+           for(Account AccRecord:acclist)
+           {
+               AccRecord.Count_of_Contacts__c=AccRecord.Contacts.size();
+               acctoUpdate.add(AccRecord);
+           }
+                    
+           Update acctoUpdate;
+           system.debug(acctoUpdate);
+           
+        }
+    /*    
+        When AFTER_DELETE
+        {           
+            Set<Id> accIds = new Set<Id>();           
+            for(Contact conRec:Trigger.old)
+            {
+                if(conRec.accountID!=NULL)
+                {
+                 accIds.add(conRec.accountID);
+                }
+            }
+            
+            List<AggregateResult> countofCon = [
+                                                Select count(ID) countOfCon , AccountId
+                                                From Contact
+                                                Where AccountId IN:accIds
+                                                Group by AccountId
+                                               ];
+            
+            List <Account> accRecToUpdate = new List <Account>();
+            
+            for(AggregateResult ar:countofCon)
+            {
+                Account accRec = new Account();
+                accRec.Id=(Id)ar.get('AccountID');
+                accRec.Count_of_Contacts__c=(Integer)ar.get('countOfCon');
+                accRecToUpdate.add(accRec);
+            }
+            
+            if(!accRecToUpdate.isempty())
+             {
+                update accRecToUpdate; 
+             }
+            
+            //------------------------------------DIY 4
+            
+            Set<ID> conIds = new Set <ID>();
+            
+            for(Contact conRec:Trigger.old)
+            {            
+                if(conRec.AccountID!=NULL)
+                {
+                  conIds.add(conRec.AccountID);                   
+                }
+            }
+            
+        List<Account> accList = [ 
+                                  Select Id , Name 
+                                  From Account 
+                                  
+                                ];
+            
+            for(Account acc:accList)
+            {
+                
+            }
+           
+            
+    }  */   
+}
+}
